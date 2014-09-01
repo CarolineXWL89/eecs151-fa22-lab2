@@ -24,8 +24,9 @@ basedir  = ./
 
 srcdir = $(basedir)/src
 vsrcs = \
-	$(srcdir)/decoder.v \
-	$(srcdir)/decoder_tb.v \
+	$(srcdir)/fir.sv \
+	$(srcdir)/addertree.sv \
+	$(srcdir)/fir_tb.v \
 
 #--------------------------------------------------------------------
 # Build rules

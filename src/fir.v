@@ -6,10 +6,7 @@ module fir #(
     input signed [NUM_INPUT_BITS-1:0] In,
     output signed [NUM_OUTPUT_BITS-1:0] Out );
 
-parameter NUM_TAPS = 5;
 
-
-//reg signed [4:0][NUM_INPUT_BITS-1:0] delay_chain;
 reg signed [NUM_INPUT_BITS-1:0] delay_chain0, delay_chain1, delay_chain2, delay_chain3, delay_chain4;
 initial begin
     delay_chain0 <= 0;

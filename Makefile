@@ -50,20 +50,21 @@ vcs_sim = simv
 $(vcs_sim) : Makefile $(vsrcs) 
 	$(VCS) $(VCS_OPTS) +incdir+$(srcdir) -o $(vcs_sim) \
 	       +define+CLOCK_PERIOD=$(vcs_clock_period) \
-	       $(vsrcs)
+	       -sverilog $(vsrcs)
 
 vcs_sim_gates = simv_gates
 $(vcs_sim_gates) : Makefile $(vsrcs_gates) 
 	$(VCS) $(VCS_OPTS) +incdir+$(srcdir) -o $(vcs_sim_gates) -P access.tab \
 	       +define+CLOCK_PERIOD=$(vcs_clock_period) +notimingcheck +delay_mode_zero +no_notifier +evalorder +udpsched \
-	       $(vsrcs_gates)
+	       -sverilog $(vsrcs_gates)
 
 vcs_sim_gates_hold = simv_gates_hold
 $(vcs_sim_gates_hold) : Makefile $(vsrcs_gates) 
 	$(VCS) $(VCS_OPTS) +incdir+$(srcdir) -o $(vcs_sim_gates_hold) -P access.tab \
-	       +define+CLOCK_PERIOD=$(vcs_clock_period) +no_notifier +evalorder +udpsched \
+	       +define+CLOCK_PERIOD=$(vcs_clock_period) +evalorder +udpsched \
 	       +sdfverbose -sdf typ:fir:src/fir.mapped.hold.sdf \
-	       $(vsrcs_gates)
+	       -sverilog $(vsrcs_gates)
+
 #--------------------------------------------------------------------
 # Run
 #--------------------------------------------------------------------

@@ -24,9 +24,16 @@ basedir  = ./
 
 srcdir = $(basedir)/src
 vsrcs = \
-	$(srcdir)/fir.sv \
-	$(srcdir)/addertree.sv \
+	$(srcdir)/fir.v \
+	$(srcdir)/addertree.v \
 	$(srcdir)/fir_tb.v \
+
+vsrcs_gates = \
+	$(srcdir)/fir.mapped.v \
+	$(srcdir)/fir_tb.v \
+	$(srcdir)/cells.v \
+
+
 
 #--------------------------------------------------------------------
 # Build rules
@@ -45,6 +52,18 @@ $(vcs_sim) : Makefile $(vsrcs)
 	       +define+CLOCK_PERIOD=$(vcs_clock_period) \
 	       $(vsrcs)
 
+vcs_sim_gates = simv_gates
+$(vcs_sim_gates) : Makefile $(vsrcs_gates) 
+	$(VCS) $(VCS_OPTS) +incdir+$(srcdir) -o $(vcs_sim_gates) -P access.tab \
+	       +define+CLOCK_PERIOD=$(vcs_clock_period) +notimingcheck +delay_mode_zero +no_notifier +evalorder +udpsched \
+	       $(vsrcs_gates)
+
+vcs_sim_gates_hold = simv_gates_hold
+$(vcs_sim_gates_hold) : Makefile $(vsrcs_gates) 
+	$(VCS) $(VCS_OPTS) +incdir+$(srcdir) -o $(vcs_sim_gates_hold) -P access.tab \
+	       +define+CLOCK_PERIOD=$(vcs_clock_period) +no_notifier +evalorder +udpsched \
+	       +sdfverbose -sdf typ:fir:src/fir.mapped.hold.sdf \
+	       $(vsrcs_gates)
 #--------------------------------------------------------------------
 # Run
 #--------------------------------------------------------------------
@@ -54,7 +73,22 @@ $(vpd): $(vcs_sim)
 	./simv +verbose=1
 	date > timestamp
 
+vpd_gates = vcdplus_gates.vpd
+$(vpd_gates): $(vcs_sim_gates)
+	./simv_gates +verbose=1 -ucli -do run.tcl
+	date > timestamp
+
+vpd_gates_hold = vcdplus_gates_hold.vpd
+$(vpd_gates_hold): $(vcs_sim_gates_hold)
+	./simv_gates_hold +verbose=1 -ucli -do run.tcl
+	date > timestamp
+
 run: $(vpd)
+
+
+run-gates: $(vpd_gates)
+
+run-gates-hold: $(vpd_gates_hold)
 
 #--------------------------------------------------------------------
 # Default make target

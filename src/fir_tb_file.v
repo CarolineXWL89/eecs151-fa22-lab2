@@ -6,24 +6,26 @@ wire signed [3:0] In;
 wire signed [15:0] Out;
 reg clk;
 
+reg [4:0] index_counter;
+initial index_counter = 0;
+wire signed [15:0] Out_correct;
+reg signed [15:0] Out_correct_array [25:0];
+reg signed [3:0] input_array [25:0];
+
 initial clk = 0;
 always #(`CLOCK_PERIOD/2) clk <= ~clk;
 
 fir dut ( .In(In), .clk(clk), .Out(Out) );
-initial begin
 
+
+
+initial begin
 $vcdpluson;
  repeat (26) @(negedge clk);
 $vcdplusoff;
 $finish;
 
 end
-
-reg [4:0] index_counter;
-initial index_counter = 0;
-wire signed [15:0] Out_correct;
-reg signed [15:0] Out_correct_array [25:0];
-reg signed [3:0] input_array [25:0];
 
 initial begin
     $readmemb("data_b.txt", Out_correct_array);

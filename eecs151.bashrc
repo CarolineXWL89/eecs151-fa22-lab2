@@ -36,8 +36,8 @@ export HSPICE_64=1
 # waveviewer
 export PATH=/tools/synopsys/cx/G-2012.06-SP1/bin:$PATH
 
-export UCB_VLSI_HOME=/tools/designs/ee241
-export PATH=/tools/designs/ee241/scripts:$PATH
+export UCB_VLSI_HOME=/tools/designs/eecs151
+export PATH=/tools/designs/eecs151/scripts:$PATH
 
 #######################################################
 # Modify the LM_LICENSE_FILE with your installation ###
@@ -50,7 +50,7 @@ export CDS_INST_DIR=/tools/cadence/IC/IC615_514
 export CDSHOME=/tools/cadence/IC/IC615_514
 export CDS_ROOT=/tools/cadence/IC/IC615_514
 export PATH=$CDS_INST_DIR/tools/dfII/bin:$PATH
-export IPDK_SYN_28NM=/tools/designs/ee241/synopsys-32nm
+export IPDK_SYN_28NM=/tools/designs/eecs151/synopsys-32nm
 export MGC_HOME=/tools/mentor/calibre/ixl_cal_2011.3_29.20
 export HSP_HOME=/tools/synopsys/hspice/current/hspice
 #export STAR_HOME=/tools/synopsys/starrcxt/E-2010.12-SP1-1

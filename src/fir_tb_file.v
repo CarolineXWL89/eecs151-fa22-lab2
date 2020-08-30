@@ -28,8 +28,8 @@ $finish;
 end
 
 initial begin
-    $readmemb("data_b.txt", Out_correct_array);
-    $readmemb("input.txt", input_array);
+    $readmemb("../../src/data_b.txt", Out_correct_array);
+    $readmemb("../../src/input.txt", input_array);
 end
 assign Out_correct = Out_correct_array[index_counter];
 assign In = input_array[index_counter];

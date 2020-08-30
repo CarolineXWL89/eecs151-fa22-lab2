@@ -1,109 +1,233 @@
-#=======================================================================
-# UCB VLSI FLOW: Makefile for vcs-sim-rtl
-#-----------------------------------------------------------------------
-# Yunsup Lee (yunsup@cs.berkeley.edu)
-#
-# This makefile will build a rtl simulator and run various tests to
-# verify proper functionality.
-#
+#########################################################################################
+# vlsi makefile
+#########################################################################################
 
-include ./Makefrag
+#########################################################################################
+# general path variables
+#########################################################################################
+base_dir=$(abspath ..)
+vlsi_dir=$(abspath .)
+sim_dir=$(abspath .)
+hammer_dir=/home/ff/eecs151/hammer
 
-default : all
+#########################################################################################
+# vlsi types and rules
+#########################################################################################
+sim_name            ?= vcs # needed for GenerateSimFiles, but is unused
+tech_name           ?= asap7
+tech_dir            ?= $(if $(filter $(tech_name), asap7 saed32), $(hammer_dir)/src/hammer-vlsi/technology/$(tech_name))
 
-basedir  = ./
-
-#--------------------------------------------------------------------
-# Sources
-#--------------------------------------------------------------------
-
-# Library components
-
-
-# Verilog sources
-
-srcdir = $(basedir)/src
-vsrcs = \
-	$(srcdir)/fir.v \
-	$(srcdir)/addertree.v \
-	$(srcdir)/fir_tb.v \
-
-vsrcs_gates = \
-	$(srcdir)/fir.mapped.v \
-	$(srcdir)/fir_tb.v \
-	$(srcdir)/cells.v \
+SMEMS_COMP         ?= $(tech_dir)/sram-compiler.json
+SMEMS_CACHE        ?= $(tech_dir)/sram-cache.json
+SMEMS_HAMMER       ?= $(hammer_dir)/src/hammer-vlsi/technology/$(tech_name)sram-cache.json
+ifeq ($(tech_name),asap7)
+	MACROCOMPILER_MODE ?= --mode synflops
+else
+	MACROCOMPILER_MODE ?= -l $(SMEMS_CACHE) -hir $(SMEMS_HAMMER)
+endif
 
 
+OBJ_DIR             ?= $(vlsi_dir)/build
+ENV_YML             ?= $(vlsi_dir)/inst-env.yml
+TECH_CONF           ?= $(vlsi_dir)/asap7.yml
 
-#--------------------------------------------------------------------
-# Build rules
-#--------------------------------------------------------------------
+DESIGN_CONF     	?= $(vlsi_dir)/design.yml
+SIM_RTL_CONF    	?= $(vlsi_dir)/sim-rtl.yml
+SIM_GL_SYN_CONF 	?= $(vlsi_dir)/sim-gl-syn.yml
+SIM_GL_PAR_CONF 	?= $(vlsi_dir)/sim-gl-par.yml
 
-VCS      = vcs -full64
-VCS_OPTS = -notice -PP -line +lint=all,noVCDE +v2k -timescale=1ns/10ps -debug
+SRAM_CONF           ?= $(OBJ_DIR)/sram_generator-output.json
+OUTPUT_SYN_DB       ?= $(OBJ_DIR)/syn-rundir/syn-output-full.json
+INPUT_PAR_DB        ?= $(OBJ_DIR)/par-input.json
+OUTPUT_PAR_DB       ?= $(OBJ_DIR)/par-rundir/par-output-full.json
+INPUT_DRC_DB        ?= $(OBJ_DIR)/drc-input.json
+INPUT_LVS_DB        ?= $(OBJ_DIR)/lvs-input.json
+INPUT_SIM_GL_SYN_DB ?= $(OBJ_DIR)/syn-to-sim_input.json
+INPUT_SIM_GL_PAR_DB ?= $(OBJ_DIR)/par-to-sim_input.json
+OUTPUT_SIM_DB		?= $(OBJ_DIR)/sim-rundir/sim-output-full.json
+INPUT_PWR_SIM_GL_DB ?= $(OBJ_DIR)/sim-to-power_input.json
+INPUT_PWR_PAR_DB    ?= $(OBJ_DIR)/par-to-power_input.json
+HAMMER_EXEC         ?= hammer-vlsi
 
-#--------------------------------------------------------------------
-# Build the simulator
-#--------------------------------------------------------------------
+#########################################################################################
+# general rules
+#########################################################################################
+.PHONY: default
+default: all
 
-vcs_sim = simv
-$(vcs_sim) : Makefile $(vsrcs) 
-	$(VCS) $(VCS_OPTS) +incdir+$(srcdir) -o $(vcs_sim) \
-	       +define+CLOCK_PERIOD=$(vcs_clock_period) \
-	       -sverilog $(vsrcs)
+all: drc lvs
 
-vcs_sim_gates = simv_gates
-$(vcs_sim_gates) : Makefile $(vsrcs_gates) 
-	$(VCS) $(VCS_OPTS) +incdir+$(srcdir) -o $(vcs_sim_gates) -P access.tab \
-	       +define+CLOCK_PERIOD=$(vcs_clock_period) +notimingcheck +delay_mode_zero +no_notifier +evalorder +udpsched \
-	       -sverilog $(vsrcs_gates)
+#########################################################################################
+# AUTO BUILD FLOW
+#########################################################################################
 
-vcs_sim_gates_hold = simv_gates_hold
-$(vcs_sim_gates_hold) : Makefile $(vsrcs_gates) 
-	$(VCS) $(VCS_OPTS) +incdir+$(srcdir) -o $(vcs_sim_gates_hold) -P access.tab \
-	       +define+CLOCK_PERIOD=$(vcs_clock_period) +evalorder +udpsched \
-	       +sdfverbose -sdf typ:fir:src/fir.mapped.hold.sdf \
-	       -sverilog $(vsrcs_gates)
+HAMMER_D_MK = $(OBJ_DIR)/hammer.d
 
-#--------------------------------------------------------------------
-# Run
-#--------------------------------------------------------------------
+.PHONY: buildfile
+buildfile: $(HAMMER_D_MK)
 
-vpd = vcdplus.vpd
-$(vpd): $(vcs_sim)
-	./simv +verbose=1
-	date > timestamp
+$(HAMMER_D_MK): $(SRAM_CONF)
+	$(HAMMER_EXEC) -e $(ENV_YML) -p $(TECH_CONF) -p $(SRAM_CONF) -p $(DESIGN_CONF) --obj_dir $(OBJ_DIR) build
 
-vpd_gates = vcdplus_gates.vpd
-$(vpd_gates): $(vcs_sim_gates)
-	./simv_gates +verbose=1 -ucli -do run.tcl
-	date > timestamp
+MAKE = make
 
-vpd_gates_hold = vcdplus_gates_hold.vpd
-$(vpd_gates_hold): $(vcs_sim_gates_hold)
-	./simv_gates_hold +verbose=1 -ucli -do run.tcl
-	date > timestamp
+#########################################################################################
+# RTL Sim
+#########################################################################################
 
-run: $(vpd)
+.PHONY: sim-rtl
+sim-rtl: $(HAMMER_D_MK)
+	$(HAMMER_EXEC) -e $(ENV_YML) -p $(TECH_CONF) -p $(SIM_RTL_CONF) --obj_dir $(OBJ_DIR) sim
 
+#########################################################################################
+# Post-Synthesis Gate Level Sim
+#########################################################################################
 
-run-gates: $(vpd_gates)
+.PHONY: sim-gl-syn
+sim-gl-syn: $(HAMMER_D_MK) $(INPUT_SIM_GL_SYN_DB)
+	$(HAMMER_EXEC) -e $(ENV_YML) -p $(TECH_CONF) -p $(SIM_GL_SYN_CONF) -p $(INPUT_SIM_GL_SYN_DB) --obj_dir $(OBJ_DIR) sim
 
-run-gates-hold: $(vpd_gates_hold)
+#########################################################################################
+# Post-PAR Gate Level Sim
+#########################################################################################
 
-#--------------------------------------------------------------------
-# Default make target
-#--------------------------------------------------------------------
+.PHONY: sim-gl-par
+sim-gl-par: $(HAMMER_D_MK) $(INPUT_SIM_GL_PAR_DB)
+	$(HAMMER_EXEC) -e $(ENV_YML) -p $(TECH_CONF) -p $(SIM_GL_PAR_CONF) -p $(INPUT_SIM_GL_PAR_DB) --obj_dir $(OBJ_DIR) sim
 
-.PHONY: run
+#########################################################################################
+# Standalone Power Estimation
+#########################################################################################
 
-all : $(vcs_sim)
+.PHONY: power
+power: $(HAMMER_D_MK)
+	$(HAMMER_EXEC) -e $(ENV_YML) -p $(TECH_CONF) -p $(SIM_GL_PAR_CONF) --obj_dir $(OBJ_DIR) power
 
-#--------------------------------------------------------------------
-# Clean up
-#--------------------------------------------------------------------
+#########################################################################################
+# Post-PAR Power Estimation
+#########################################################################################
 
-junk += simv* csrc *.vpd *.key DVE* .vcs* timestamp
+.PHONY: power-par
+power-par: $(HAMMER_D_MK) $(INPUT_PWR_SIM_GL_DB) $(INPUT_PWR_PAR_DB)
+	$(HAMMER_EXEC) -e $(ENV_YML) -p $(TECH_CONF) -p $(INPUT_PWR_SIM_GL_DB) -p $(INPUT_PWR_PAR_DB) --obj_dir $(OBJ_DIR) power
 
-clean :
-	rm -rf $(junk) *~ \#* *.log *.cmd *.daidir
+#########################################################################################
+# Synthesis
+#########################################################################################
+
+.PHONY: syn
+$(OUTPUT_SYN_DB) syn: $(HAMMER_D_MK)
+	$(HAMMER_EXEC) -e $(ENV_YML) -p $(TECH_CONF) -p $(SRAM_CONF) -p $(DESIGN_CONF) -o $(OUTPUT_SYN_DB) --obj_dir $(OBJ_DIR) syn
+
+#########################################################################################
+# Synthesis to PAR
+#########################################################################################
+
+.PHONY: syn-to-par
+$(INPUT_PAR_DB) syn-to-par: $(HAMMER_D_MK) $(OUTPUT_SYN_DB)
+	$(HAMMER_EXEC) -e $(ENV_YML) -p $(TECH_CONF) -p $(OUTPUT_SYN_DB) -p $(DESIGN_CONF) -o $(INPUT_PAR_DB) --obj_dir $(OBJ_DIR) syn_to_par
+
+#########################################################################################
+# Synthesis to Sim
+#########################################################################################
+
+.PHONY: syn-to-sim
+$(INPUT_SIM_GL_SYN_DB) syn-to-sim: $(HAMMER_D_MK) $(OUTPUT_SYN_DB)
+	$(HAMMER_EXEC) -e $(ENV_YML) -p $(TECH_CONF) -p $(OUTPUT_SYN_DB) -o $(INPUT_SIM_GL_SYN_DB) --obj_dir $(OBJ_DIR) syn_to_sim
+
+#########################################################################################
+# PAR
+#########################################################################################
+
+.PHONY: par
+$(OUTPUT_PAR_DB) par: $(HAMMER_D_MK) $(INPUT_PAR_DB)
+	$(HAMMER_EXEC) -e $(ENV_YML) -p $(TECH_CONF) -p $(SRAM_CONF) -p $(INPUT_PAR_DB) -o $(OUTPUT_PAR_DB) --obj_dir $(OBJ_DIR) par
+
+#########################################################################################
+# PAR to DRC
+#########################################################################################
+
+.PHONY: par-to-drc
+par-to-drc: $(HAMMER_D_MK) $(OUTPUT_PAR_DB)
+	$(HAMMER_EXEC) -e $(ENV_YML) -p $(TECH_CONF) -p $(OUTPUT_PAR_DB) -o $(INPUT_DRC_DB) --obj_dir $(OBJ_DIR) par_to_drc
+
+#########################################################################################
+# PAR to LVS
+#########################################################################################
+
+.PHONY: par-to-lvs
+par-to-lvs: $(HAMMER_D_MK) $(OUTPUT_PAR_DB)
+	$(HAMMER_EXEC) -e $(ENV_YML) -p $(TECH_CONF) -p $(OUTPUT_PAR_DB) -o $(INPUT_LVS_DB) --obj_dir $(OBJ_DIR) par_to_lvs
+
+#########################################################################################
+# PAR to Sim
+#########################################################################################
+
+.PHONY: par-to-sim
+$(INPUT_SIM_GL_PAR_DB) par-to-sim: $(HAMMER_D_MK) $(OUTPUT_PAR_DB)
+	$(HAMMER_EXEC) -e $(ENV_YML) -p $(TECH_CONF) -p $(OUTPUT_PAR_DB) -o $(INPUT_SIM_GL_PAR_DB) --obj_dir $(OBJ_DIR) par_to_sim
+
+#########################################################################################
+# Sim to Power
+#########################################################################################
+
+.PHONY: sim-to-power
+$(INPUT_PWR_SIM_GL_DB) sim-to-power: $(HAMMER_D_MK) sim-gl-par
+	$(HAMMER_EXEC) -e $(ENV_YML) -p $(TECH_CONF) -p $(OUTPUT_SIM_DB) -o $(INPUT_PWR_SIM_GL_DB) --obj_dir $(OBJ_DIR) sim_to_power
+
+#########################################################################################
+# PAR to Power
+#########################################################################################
+
+.PHONY: par-to-power
+$(INPUT_PWR_PAR_DB) par-to-power: $(HAMMER_D_MK) $(OUTPUT_PAR_DB)
+	$(HAMMER_EXEC) -e $(ENV_YML) -p $(TECH_CONF) -p $(OUTPUT_PAR_DB) -o $(INPUT_PWR_PAR_DB) --obj_dir $(OBJ_DIR) par_to_power
+
+#########################################################################################
+# DRC
+#########################################################################################
+
+.PHONY: drc
+drc: $(HAMMER_D_MK)
+	$(MAKE) -f $(HAMMER_D_MK) drc
+
+#########################################################################################
+# LVS
+#########################################################################################
+
+.PHONY: lvs
+lvs: $(HAMMER_D_MK)
+	$(MAKE) -f $(HAMMER_D_MK) lvs
+
+#########################################################################################
+# Redo Synthesis
+#########################################################################################
+
+# Quick hack. Might not be ideal, but it works
+redo-syn: $(HAMMER_D_MK)
+	$(MAKE) -f $(HAMMER_D_MK) redo-syn
+
+#########################################################################################
+# Redo PAR
+#########################################################################################
+
+# Quick hack. Might not be ideal, but it works
+redo-par: $(HAMMER_D_MK)
+	$(MAKE) -f $(HAMMER_D_MK) redo-par
+
+#########################################################################################
+# SRAM Compiler
+#########################################################################################
+
+.PHONY: srams
+$(SRAM_CONF) srams:
+	$(HAMMER_EXEC) -e $(ENV_YML) -p $(TECH_CONF) -p $(DESIGN_CONF) --obj_dir $(OBJ_DIR) sram_generator
+	cp output.json $(SRAM_CONF)
+
+#########################################################################################
+# general cleanup rule
+#########################################################################################
+# Don't remove the extracted PDK dir, otherwise we have to rebuild it again
+.PHONY: clean
+clean:
+	rm -rf $(HAMMER_D_MK) $(OBJ_DIR)/*rundir $(OBJ_DIR)/*.json hammer-vlsi*.log __pycache__ output.json

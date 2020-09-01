@@ -28,8 +28,6 @@ sim.inputs:
 power.inputs:
   saifs:
     - "src/post-par-sim/ucli.saif"
-  start_times: []
-  end_times: []
   spefs:
     - "src/post-par-sim/fir.hold.par.spef"
     - "src/post-par-sim/fir.setup.par.spef"

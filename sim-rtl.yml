@@ -2,6 +2,7 @@
 sim.inputs:
   input_files:
     - "src/fir.v"
+    - "src/EECS151.v"
     - "src/addertree.v"
     - "src/fir_tb.v"
   timescale: "1ns/10ps"

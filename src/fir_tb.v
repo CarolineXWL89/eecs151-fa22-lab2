@@ -4,15 +4,19 @@ module fir_tb();
 
 reg signed [3:0] In;
 wire signed [15:0] Out;
-reg clk;
+reg clk, rst;
+
+integer i=0;
 
 initial clk = 0;
 always #(`CLOCK_PERIOD/2) clk <= ~clk;
 
-fir dut ( .In(In), .clk(clk), .Out(Out) );
+fir dut ( .In(In), .clk(clk), .Out(Out), .rst(rst) );
 initial begin
 
 $vcdpluson;
+ rst <= 1'b1;
+ @(negedge clk) rst <= 1'b0;
   In <= 4'd0;
  @(negedge clk)  In<= 4'd1;
  @(negedge clk)  In<= 4'd0;
@@ -38,7 +42,7 @@ $finish;
 end
 
 reg [4:0] index_counter;
-initial index_counter = 0;
+initial index_counter = -1;
 wire signed [15:0] Out_correct;
 wire signed [25:0] [15:0] Out_correct_array;
 assign Out_correct_array[0] = 0;
@@ -69,8 +73,8 @@ assign Out_correct_array[24] = -156;
 assign Out_correct_array[25] = -130;
 assign Out_correct = Out_correct_array[index_counter];
 always @(negedge clk) begin
-    $display($time, ": Out should be %d, got %d", Out_correct, Out);
-    index_counter <= index_counter + 1;
+        $display($time, ": Out should be %d, got %d", Out_correct, Out);
+        index_counter <= index_counter + 1;
 end
 
 endmodule

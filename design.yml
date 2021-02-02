@@ -8,7 +8,7 @@ vlsi.inputs.clocks: [
 # Synthesis Constraints
 synthesis.inputs:
   top_module: "fir"
-  input_files: "src/fir.v"
+  input_files: ["src/fir.v", "src/EECS151.v", "src/addertree.v"]
 
 # Placement Constraints
 vlsi.inputs.placement_constraints:

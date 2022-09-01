@@ -2,7 +2,7 @@
 # Technology used is ASAP7
 vlsi.core.technology: asap7
 vlsi.core.node: 7
-technology.asap7.tarball_dir: "/home/ff/eecs151/"
+technology.asap7.tarball_dir: "/home/ff/eecs151/asic/technology/asap7"
 
 vlsi.core.max_threads: 4
 

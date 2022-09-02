@@ -8,18 +8,17 @@
 base_dir=$(abspath ..)
 vlsi_dir=$(abspath .)
 sim_dir=$(abspath .)
-hammer_dir=/home/ff/eecs151/hammer
 
 #########################################################################################
 # vlsi types and rules
 #########################################################################################
 sim_name            ?= vcs # needed for GenerateSimFiles, but is unused
 tech_name           ?= asap7
-tech_dir            ?= $(if $(filter $(tech_name), asap7 saed32), $(hammer_dir)/src/hammer-vlsi/technology/$(tech_name))
+tech_dir            ?= $(if $(filter $(tech_name), asap7 saed32), $(HAMMER_HOME)/src/hammer-vlsi/technology/$(tech_name))
 
 SMEMS_COMP         ?= $(tech_dir)/sram-compiler.json
 SMEMS_CACHE        ?= $(tech_dir)/sram-cache.json
-SMEMS_HAMMER       ?= $(hammer_dir)/src/hammer-vlsi/technology/$(tech_name)sram-cache.json
+SMEMS_HAMMER       ?= $(HAMMER_HOME)/src/hammer-vlsi/technology/$(tech_name)sram-cache.json
 ifeq ($(tech_name),asap7)
 	MACROCOMPILER_MODE ?= --mode synflops
 else

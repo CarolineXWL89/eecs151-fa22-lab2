@@ -8,13 +8,19 @@ reg clk, rst;
 
 integer i=0;
 
+// Sets up clock signal: initially 0 that toggles every evalulation of CLOCK_PERIOD / 2 by setting clk signal to ~clk.
+// CLOCK_PERIOD defined in sim.inputs.defines key in sim-rtl.yml.
 initial clk = 0;
 always #(`CLOCK_PERIOD/2) clk <= ~clk;
 
+// Setting up inputs.
 fir dut ( .In(In), .clk(clk), .Out(Out), .rst(rst) );
 initial begin
 
-$vcdpluson;
+$vcdpluson; // System task that sets up vpd file generation to look at waveforms.
+ // Lines are executed consecutively at each sequential FCE; sets up a series of inputs.
+ // Using FCE b/c registers we're samping from operate on RCE so we want to make sure correct value is sampled when edge occurs.
+ // Changing on same CE causes hold time violation.
  rst <= 1'b1;
  @(negedge clk) rst <= 1'b0;
   In <= 4'd0;
@@ -36,7 +42,7 @@ $vcdpluson;
  @(negedge clk)  In<= 4'd13;
  @(negedge clk)  In<= 4'd14;
  @(negedge clk)  In<= 4'd15;
-$vcdplusoff;
+$vcdplusoff; // System task that closes this off.
 $finish;
 
 end

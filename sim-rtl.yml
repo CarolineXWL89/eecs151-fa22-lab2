@@ -1,10 +1,8 @@
 # RTL Simulation Variables
 sim.inputs:
   input_files:
-    - "src/fir.v"
-    - "src/EECS151.v"
-    - "src/addertree.v"
-    - "src/fir_tb.v"
+    - "src/q2.v"
+    - "src/q2_tb.v"
   timescale: "1ns/10ps"
   options:
     - "-notice"
@@ -13,7 +11,7 @@ sim.inputs:
     - "+v2k"
     - "-debug"
     - "-sverilog"
-  top_module: "fir"
-  tb_name: "fir_tb"
+  top_module: "q2"
+  tb_name: "q2_tb"
   defines: 
     - "CLOCK_PERIOD=1.00"
